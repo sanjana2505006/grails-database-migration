@@ -1,0 +1,13 @@
+grails:
+  plugin:
+    databasemigration:
+      updateOnStart: true
+      updateOnStartFileName: changelog.groovy
+
+dataSource:
+  url: jdbc:tc:postgresql:16:///postgres
+  driverClassName: org.testcontainers.jdbc.ContainerDatabaseDriver
+  dbCreate: none
+
+hibernate:
+  dialect: org.hibernate.dialect.PostgreSQLDialect

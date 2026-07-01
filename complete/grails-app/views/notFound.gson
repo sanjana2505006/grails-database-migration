@@ -1,0 +1,4 @@
+json {
+    message 'Not found'
+    status 404
+}

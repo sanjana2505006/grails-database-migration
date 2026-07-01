@@ -1,0 +1,8 @@
+model {
+    Throwable exception
+}
+
+json {
+    message exception?.message ?: 'An error occurred'
+    error exception?.class?.simpleName
+}

@@ -1,0 +1,6 @@
+# grails create-app example --profile=rest-api --inplace
+#   -f postgres,database-migration,views-json,testcontainers,spock
+applicationType: rest-api
+defaultPackage: example
+name: example
+grailsVersion: 8.0.0-SNAPSHOT

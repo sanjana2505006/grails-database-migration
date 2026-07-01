@@ -1,0 +1,10 @@
+import example.ApplicationController
+
+model {
+    ApplicationController controller
+}
+
+json {
+    message controller.grailsApplication.config.getProperty('info.app.name', String, 'example')
+    grailsVersion controller.grailsApplication.metadata.getGrailsVersion()
+}

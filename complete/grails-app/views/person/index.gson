@@ -1,0 +1,11 @@
+import example.Person
+
+model {
+    Iterable<Person> personList
+    Long personCount
+}
+
+json {
+    total personCount ?: personList?.size()
+    persons g.render(template: '/person/person', collection: personList ?: [], var: 'person')
+}

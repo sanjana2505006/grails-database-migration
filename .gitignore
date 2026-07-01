@@ -1,0 +1,9 @@
+node_modules/
+.gradle/
+build/
+.idea/
+*.iml
+.DS_Store
+Thumbs.db
+.grails-static-website-clone/
+_static-website-pr/

@@ -1,0 +1,11 @@
+import example.Person
+
+model {
+    Person person
+}
+
+json {
+    id person.id
+    name person.name
+    age person.age
+}

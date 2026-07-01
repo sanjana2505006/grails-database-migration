@@ -28,9 +28,13 @@ cd grails-database-migration/initial
 ./gradlew test
 ```
 
-Run the finished app (requires PostgreSQL on `localhost:5432`):
+Run either app locally (both require PostgreSQL on `localhost:5432`, database `devDb`):
 
 ```bash
+cd grails-database-migration/initial   # after working through migrations in the guide
+./gradlew bootRun
+
+# or the finished sample:
 cd grails-database-migration/complete
 ./gradlew bootRun
 ```
@@ -43,7 +47,7 @@ The integration spec (`DatabaseMigrationIntegrationSpec`) asserts on a **clean T
 
 - **JDK 21** (Temurin recommended; the Gradle build enforces Java 21+)
 - **Docker** running locally — required for `integrationTest` (Testcontainers PostgreSQL). Unit tests (`./gradlew test`) do not need Docker.
-- **PostgreSQL 16** on `localhost:5432` — required for `./gradlew bootRun` (default database `devDb` in `application.yml`)
+- **PostgreSQL 16** on `localhost:5432` — required for `./gradlew bootRun` in both `initial/` and `complete/` (default database `devDb` in `application.yml`)
 
 If Gradle reports *"Run this build using a Java 21 or newer JVM"*, your shell or IDE is still on an older JDK:
 
@@ -101,6 +105,8 @@ grails:
 databaseChangeLog = {
     include file: 'create-person-table.groovy'
     include file: 'change-age-constraint-to-nullable.groovy'
+    include file: 'add-address-fields-to-person.groovy'
+    include file: 'create-address-table.groovy'
 }
 ```
 

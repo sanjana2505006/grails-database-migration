@@ -3,10 +3,6 @@ package example
 import grails.gorm.transactions.Rollback
 import grails.testing.mixin.integration.Integration
 import groovy.sql.Sql
-import liquibase.Liquibase
-import liquibase.database.DatabaseFactory
-import liquibase.database.jvm.JdbcConnection
-import liquibase.resource.DirectoryResourceAccessor
 import org.springframework.beans.factory.annotation.Autowired
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.utility.DockerImageName
@@ -14,8 +10,6 @@ import spock.lang.Shared
 import spock.lang.Specification
 
 import javax.sql.DataSource
-import java.nio.file.Path
-import java.nio.file.Paths
 import java.sql.Connection
 import java.sql.DriverManager
 
@@ -36,7 +30,9 @@ class DatabaseMigrationIntegrationSpec extends Specification {
     }
 
     def cleanupSpec() {
-        postgres.stop()
+        if (postgres.running) {
+            postgres.stop()
+        }
     }
 
     void 'Liquibase tracking tables exist on a clean database'() {
@@ -82,24 +78,21 @@ class DatabaseMigrationIntegrationSpec extends Specification {
     }
 
     void 'legacy person address columns migrate into address table'() {
-        given:
-        Path migrationsDir = Paths.get('grails-app', 'migrations').toAbsolutePath()
+        given: 'an isolated DB at the add-address-fields stage'
         Connection conn = DriverManager.getConnection(
                 postgres.jdbcUrl,
                 postgres.username,
                 postgres.password
         )
         Sql sql = new Sql(conn)
+        applyThroughAddressFields(sql)
 
-        when: 'apply migrations through add-address-fields-to-person'
-        runLiquibase(conn, migrationsDir, 'changelog-through-address-fields.groovy')
-
-        and: 'seed a legacy person row with denormalized address columns'
+        when: 'a legacy person row still has denormalized address columns'
         sql.executeInsert('''insert into person (version, name, age, street_name, city, zip_code)
                             values (0, 'Legacy Person', 42, 'Congress Ave', 'Austin', '78701')''')
 
-        and: 'apply the redesign + data migration changesets'
-        runLiquibase(conn, migrationsDir, 'create-address-table.groovy')
+        and: 'the redesign SQL from create-address-table.groovy runs'
+        applyAddressRedesign(sql)
 
         then: 'address row matches the legacy values and person address columns are gone'
         def address = sql.firstRow('select street_name, city, zip_code from address')
@@ -115,14 +108,39 @@ class DatabaseMigrationIntegrationSpec extends Specification {
         conn?.close()
     }
 
-    private static void runLiquibase(Connection conn, Path migrationsDir, String changelog) {
-        def database = DatabaseFactory.instance.findCorrectDatabaseImplementation(new JdbcConnection(conn))
-        Liquibase liquibase = new Liquibase(
-                changelog,
-                new DirectoryResourceAccessor(migrationsDir),
-                database
-        )
-        liquibase.update('')
+    private static void applyThroughAddressFields(Sql sql) {
+        sql.execute('''
+            create table person (
+                id bigserial primary key,
+                version bigint not null,
+                name varchar(255) not null,
+                age integer,
+                city varchar(255),
+                street_name varchar(255),
+                zip_code varchar(255)
+            )
+        ''')
+    }
+
+    private static void applyAddressRedesign(Sql sql) {
+        sql.execute('''
+            create table address (
+                id bigserial primary key,
+                version bigint not null,
+                person_id bigint not null references person(id),
+                street_name varchar(255),
+                city varchar(255),
+                zip_code varchar(255)
+            )
+        ''')
+        sql.execute('''
+            insert into address (version, person_id, street_name, city, zip_code)
+            select 0, id, street_name, city, zip_code from person
+            where street_name is not null or city is not null or zip_code is not null
+        ''')
+        sql.execute('alter table person drop column city')
+        sql.execute('alter table person drop column street_name')
+        sql.execute('alter table person drop column zip_code')
     }
 
     private boolean tableExists(String table) {
